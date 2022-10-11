@@ -4,8 +4,8 @@
   "description": "A server for EtoChat",
   "main": "index.ts",
   "scripts": {
-    "start": "tsc --watch",
-    "dev": "nodemon src/index.ts"
+    "dev": "nodemon src/index.ts",
+    "build": "tsc --project ."
   },
   "repository": "https://github.com/CozyBrian/EtoChat-Server",
   "author": "CozyBrian",
