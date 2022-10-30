@@ -9,4 +9,5 @@ app.get("/", (req: Request, res: Response) => {
 
 app.listen(PORT, () => {
   console.log(`listening on port ${PORT}`);
+  console.log("did that work")
 });
