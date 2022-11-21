@@ -4,7 +4,7 @@
   "description": "A server for EtoChat",
   "main": "index.ts",
   "scripts": {
-    "dev": "nodemon src/index.ts",
+    "start": "nodemon src/index.ts",
     "build": "tsc --project ."
   },
   "repository": "https://github.com/CozyBrian/EtoChat-Server",
@@ -21,6 +21,7 @@
     "cors": "^2.8.5",
     "express": "^4.18.2",
     "nanoid": "2.1.11",
+    "peer": "^0.6.1",
     "socket.io": "^4.5.3",
     "ts-node": "^10.9.1"
   }

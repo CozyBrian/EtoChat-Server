@@ -1,26 +1,22 @@
 import http from "http";
 import app from "./app";
 import { Server } from "socket.io";
-import { roomHandler } from "./events/numberevent";
+import { roomHandler } from "./events/room-handler";
+import { ExpressPeerServer } from "peer";
 
 const PORT = process.env.PORT || 3001;
 
 const server = http.createServer(app);
-const io = new Server(server, {
+
+app.use("/peer", ExpressPeerServer(server));
+
+export const io = new Server(server, {
   cors: {
     origin: "*",
   },
 });
 
-io.on("connection", (socket) => {
-  console.log("a user Connected");
-  socket.on("join-room", (roomId: string, userId: number) => {
-    console.log(`${roomId} and ${userId}`);
-    socket.join(roomId);
-    socket.to(roomId).emit("user-connected", userId);
-  });
-  //registerOrderHandlers(io, socket);
-});
+io.on("connection", roomHandler);
 
 function startServer() {
   server.listen(PORT, () => {
