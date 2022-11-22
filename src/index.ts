@@ -8,7 +8,7 @@ const PORT = process.env.PORT || 3001;
 
 const server = http.createServer(app);
 
-app.use("/peer", ExpressPeerServer(server));
+app.use("/peer", ExpressPeerServer(server, {}));
 
 export const io = new Server(server, {
   cors: {
