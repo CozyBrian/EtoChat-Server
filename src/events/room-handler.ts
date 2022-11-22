@@ -35,6 +35,13 @@ export const roomHandler = (socket:Socket<DefaultEventsMap, DefaultEventsMap, De
       } else {
         SharerBank.push(user);
         console.log("sharer banked");
+        setTimeout(() => {
+          if(SharerBank.includes(user)) {
+            SharerBank = SharerBank.filter((buser) => buser.sid !== user.sid)
+            console.log("sharer unbanked");
+            socket.emit("bank-time-out");
+          }
+        }, 10000);
       }
     }
     
@@ -49,22 +56,29 @@ export const roomHandler = (socket:Socket<DefaultEventsMap, DefaultEventsMap, De
       } else {
         ListenerBank.push(user);
         console.log("listener banked");
+        setTimeout(() => {
+          if(ListenerBank.includes(user)) {
+            ListenerBank = ListenerBank.filter((buser) => buser.sid !== user.sid);
+            console.log("listener unbanked");
+            socket.emit("bank-time-out");
+          }
+        }, 10000);
       }
 
     }
 
     socket.on("disconnect", () => {
       console.log("user disconnect");
-      socket.to(Array.from(socket.rooms.values())[1]).emit("user-disconnected")
-      // socket.broadcast.to(Array.from(socket.rooms.values())[1]).emit("user-disconnected");
-      // io.to(Array.from(socket.rooms.values())).emit("user-disconnected");
+      // socket.to(Array.from(socket.rooms.values())).emit("user-disconnected", { data:"socket-emit" });
+      // socket.broadcast.to(Array.from(socket.rooms.values())).emit("user-disconnected", { data: "socket-broadcast" });
+      io.to(Array.from(socket.rooms.values())).emit("user-disconnected", "io-emit");
     })
 
     socket.on("end-call", () => {
       console.log("user - end disconnect");
-      socket.to(Array.from(socket.rooms.values())).emit("user-disconnected", "socket-emit");
-      socket.broadcast.to(Array.from(socket.rooms.values())).emit("user-disconnected", "socket-broadcast");
-      io.to(Array.from(socket.rooms.values())).emit("user-disconnected");
+      // socket.to(Array.from(socket.rooms.values())).emit("user-disconnected", { data:"socket-emit" });
+      // socket.broadcast.to(Array.from(socket.rooms.values())).emit("user-disconnected", { data: "socket-broadcast" });
+      io.to(Array.from(socket.rooms.values())).emit("user-disconnected", "io-emit");
     })
 
   });
