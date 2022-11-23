@@ -22,16 +22,20 @@ export const roomHandler = (socket:Socket<DefaultEventsMap, DefaultEventsMap, De
     console.log(`called ${user.sid} from ${socket.id}`);
     
     socket.to(user.sid).emit("on-called", socket.id)
-  })
+  });
   
   socket.on("join-room", (data) => {
     console.log(`joined ${data} from ${socket.id}`);
     socket.join(data);
-  })
+  });
 
   socket.on("leave-peer", () => {
     socket.leave(socketRooms[1]);
-  })
+  });
+
+  socket.on("mic-mute", (data) => {
+    io.to(socketRooms).emit("user-mic-mute", data);
+  });
 
   socket.on("make-request", ({ user }: { user: UserType }) => {
     console.log(user);
