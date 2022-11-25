@@ -35,19 +35,9 @@ export const roomHandler = (socket:Socket<DefaultEventsMap, DefaultEventsMap, De
   socket.on("leave-peer", () => {
     const socketRooms = Array.from(socket.rooms.values());
 
-    console.log("-------START-------");
-    console.log(socket.id);
-    console.log(" ");
     socketRooms.forEach((room, i) => {
       i !== 0 && socket.leave(room);
-      console.log(`leave - ${room}`);
     });
-    console.log(" ");
-    console.log('Remaining');
-    console.log(Array.from(socket.rooms.values()));
-    console.log("-------END-------");
-    
-    
   });
 
   socket.on("mic-mute", (data) => {
