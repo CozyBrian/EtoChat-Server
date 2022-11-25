@@ -8,114 +8,129 @@ type onCallPairType = {
   partner: UserType;
 }
 
-let SharerBank: UserType[] = [];
-let ListenerBank: UserType[] = [];
+let UserWaitQueue: UserType[] = [];
 let onCallPairBank: onCallPairType[] = [];
 
+const FIND_TIMEOUT_MS = 45000; 
+
 export const roomHandler = (socket:Socket<DefaultEventsMap, DefaultEventsMap, DefaultEventsMap, any>) => {
-  console.log("a user Connected");
-  console.log(socket.id);
+  console.log(`a user Connected - ${socket.id}`);
 
   const socketRooms = Array.from(socket.rooms.values());
 
   socket.on("calling", ({ user }: { user: UserType }) => {
-    console.log(`called ${user.sid} from ${socket.id}`);
-    
     socket.to(user.sid).emit("on-called", socket.id)
   });
   
   socket.on("join-room", (data) => {
-    console.log(`joined ${data} from ${socket.id}`);
-    socket.join(data);
+    const socketRooms = Array.from(socket.rooms.values());
+
+    socketRooms.forEach((room, i) => {
+      i !== 0 && socket.leave(room);
+    });
+
+    socket.join(data);    
   });
 
   socket.on("leave-peer", () => {
-    socket.leave(socketRooms[1]);
+    const socketRooms = Array.from(socket.rooms.values());
+
+    console.log("-------START-------");
+    console.log(socket.id);
+    console.log(" ");
+    socketRooms.forEach((room, i) => {
+      i !== 0 && socket.leave(room);
+      console.log(`leave - ${room}`);
+    });
+    console.log(" ");
+    console.log('Remaining');
+    console.log(Array.from(socket.rooms.values()));
+    console.log("-------END-------");
+    
+    
   });
 
   socket.on("mic-mute", (data) => {
     io.to(socketRooms).emit("user-mic-mute", data);
   });
 
-  socket.on("make-request", ({ user }: { user: UserType }) => {
-    console.log(user);
+  socket.on("make-request", ({ user }: { user: UserType }) => {  
     if (onCallPairBank.find((item) => item.caller.sid === user.sid || item.partner.sid === user.sid) === undefined) {
       
-      if (user.mode === "SHARER") {
-        if (ListenerBank.length !== 0) {
-          const outUser = ListenerBank.pop()!;
-          
-          socket.join(outUser?.sid);
-          
+      if (UserWaitQueue.length !== 0) {
+        const outUser = UserWaitQueue.pop()!;
+
+        if (outUser.sid !== user.sid) {
           setTimeout(() => {
             socket.emit("accepted", { user: outUser });
           }, 1000);
+  
+          socket.join(outUser?.sid);
           
           onCallPairBank.push({ caller: outUser, partner: user });
           console.log("sharer served");
         } else {
-          SharerBank.push(user);
-          
+          UserWaitQueue.push(user);
+        
           console.log("sharer banked");
-          
+        
           setTimeout(() => {
-            if(SharerBank.includes(user)) {
-              SharerBank = SharerBank.filter((buser) => buser.sid !== user.sid)
+            if(UserWaitQueue.includes(user)) {
+              UserWaitQueue = UserWaitQueue.filter((buser) => buser.sid !== user.sid)
               console.log("sharer unbanked");
               socket.emit("bank-time-out");
             }
-          }, 10000);
+          }, FIND_TIMEOUT_MS);
         }
-      }
-      
-      if (user.mode === "LISTENER") {
-        if (SharerBank.length !== 0) {
-          const outUser = SharerBank.pop()!;
-
-          socket.join(outUser?.sid);
-
-          setTimeout(() => {
-            socket.emit("accepted", { user: outUser });
-          }, 1000);
-
-          onCallPairBank.push({caller: outUser, partner: user});
-          console.log("listener served");
-        } else {
-          ListenerBank.push(user);
-
-          console.log("listener banked");
-          
-          setTimeout(() => {
-            if(ListenerBank.includes(user)) {
-              ListenerBank = ListenerBank.filter((buser) => buser.sid !== user.sid);
-              console.log("listener unbanked");
-              socket.emit("bank-time-out");
-            }
-          }, 10000);
-        }  
+        
+      } else {
+        UserWaitQueue.push(user);
+        
+        console.log("sharer banked");
+        
+        setTimeout(() => {
+          if(UserWaitQueue.includes(user)) {
+            UserWaitQueue = UserWaitQueue.filter((buser) => buser.sid !== user.sid)
+            console.log("sharer unbanked");
+            socket.emit("bank-time-out");
+          }
+        }, FIND_TIMEOUT_MS);
       }
     } else {
-      io.to(Array.from(socket.rooms.values())).emit("user-disconnected", "io-emit");
+      const socketRooms = Array.from(socket.rooms.values());
+      io.to(socketRooms[1]).emit("user-disconnected", "io-emit");
       onCallPairBank = onCallPairBank.filter((item) => {item.caller.sid !== user.sid && item.partner.sid !== user.sid});
       console.log(onCallPairBank);
-      
     }
-      
-    socket.on("disconnect", () => {
-      console.log("user disconnect");
-      io.to(socketRooms).emit("user-disconnected", "io-emit");
-      onCallPairBank = onCallPairBank.filter((item) => item.caller.sid !== socket.id && item.partner.sid !== socket.id);
-      socket.leave(socketRooms[1]);
+  });
+
+  socket.on("disconnect", () => {
+    const socketRooms = Array.from(socket.rooms.values());
+
+    for (let index = 0; index < 2; index++) {
+      io.to(socketRooms[index]).emit("user-disconnected", socket.id);
+    }
+
+    onCallPairBank = onCallPairBank.filter((item) => item.caller.sid !== socket.id && item.partner.sid !== socket.id);
+    
+    socketRooms.forEach((room, i) => {
+      i !== 0 && socket.leave(room);
+    });
+  });
+
+  socket.on("end-call", () => {
+    const socketRooms = Array.from(socket.rooms.values());
+    console.log("user - end disconnect");
+
+    for (let index = 0; index < 2; index++) {
+      io.to(socketRooms[index]).emit("user-disconnected", socket.id);
+    }
+
+    socketRooms.forEach((room, i) => {
+      i !== 0 && socket.leave(room);
     });
     
-    socket.on("end-call", () => {
-      console.log("user - end disconnect");
-      io.to(socketRooms).emit("user-disconnected", "io-emit");
-      socket.leave(socketRooms[1]);
-      
-      onCallPairBank = onCallPairBank.filter((item) => item.caller.sid !== socket.id && item.partner.sid !== socket.id);
-    });
-
+    onCallPairBank = onCallPairBank.filter((item) => item.caller.sid !== socket.id && item.partner.sid !== socket.id);
   });
   
 };
