@@ -18,8 +18,8 @@ export const roomHandler = (socket:Socket<DefaultEventsMap, DefaultEventsMap, De
 
   const socketRooms = Array.from(socket.rooms.values());
 
-  socket.on("calling", ({ user }: { user: UserType }) => {
-    socket.to(user.sid).emit("on-called", socket.id)
+  socket.on("calling", ({ user }: { user: UserType }, userState) => {
+    socket.to(user.sid).emit("on-called", socket.id, userState);
   });
   
   socket.on("join-room", (data) => {
